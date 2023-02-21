@@ -13,20 +13,17 @@ type Handler struct {
 	TodoRepository repository.TodoRepository
 }
 
-func NewHandler(todoRepository repository.TodoRepository) *Handler {
-	return &Handler{TodoRepository: todoRepository}
+func NewTodoService(todoRepo repository.TodoRepository) *Handler {
+	return &Handler{
+		TodoRepository: todoRepo,
+	}
 }
 
-//	func NewTodoService(todoRepository repository.TodoRepository) *Handler {
-//		return &Handler{
-//			TodoRepository: todoRepository,
-//		}
-//	}
 func (h *Handler) TodolistHandlerGetAll(ctx *gin.Context) {
 	todos, err := h.TodoRepository.GetAll()
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+			"message": "Internal Server Error",
 		})
 	}
 	logrus.Info(200, " Success Get All Data")

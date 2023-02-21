@@ -41,7 +41,7 @@ func main() {
 	}
 	// initial repo
 	todoRepo := database.NewTodoRepository(db)
-	todoService := service.NewHandler(todoRepo)
+	todoService := service.NewTodoService(todoRepo)
 	routeBuilder := router.NewRouteBuilder(todoService)
 	routeInit := routeBuilder.RouteInit()
 	//routeInit.Use(middleware.NewAuthMiddleware)
