@@ -26,8 +26,6 @@ func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 		cfg.DBName,
 	)
 
-	//const MYSQL = "Raihan:Pastibisa@tcp(localhost:3306)/Fiber_test?charset=utf8mb4&parseTime=True&loc=Local"
-	//dsn := MYSQL
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags),

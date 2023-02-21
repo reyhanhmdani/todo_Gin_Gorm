@@ -331,36 +331,3 @@ func TestUnauthorized(t *testing.T) {
 	//assert.Equal(t, 401, int(responseBody["status"].(float64)))
 	assert.Equal(t, "UNAUTHORIZED", responseBody["message"])
 }
-
-//func TestUpdateTodolist(t *testing.T) {
-//	db, _ := setupTestDB()
-//	//setupRouter(db)
-//
-//	handler := database.NewTodoRepository(db)
-//
-//	type args struct {
-//		todolistId int
-//		request    request.TodolistUpdateRequest
-//	}
-//
-//	tests := []struct {
-//		name    string
-//		handler *database.TodoRepository
-//		args    args
-//		wantErr bool
-//		want    int
-//	}{
-//		{
-//			name:    "Success Update Todolist",
-//			handler: handler,
-//		},
-//	}
-//}
-
-func ToJSON(t interface{}) string {
-	bytes, err := json.Marshal(t)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(bytes)
-}
