@@ -20,13 +20,20 @@ import (
 )
 
 func TestTodolist(t *testing.T) {
+	t.Run("testTodolistHandlerGetByID", testTodolistHandlerGetByID)
+	t.Run("testDelete", testDelete) // blm bisa
+}
+
+func TestBy1Test(t *testing.T) {
 	t.Run("testGetAllSuccess", testGetAllSuccess)
 	t.Run("testTodolistInternalServerError", testTodolistInternalServerError)
 	t.Run("testEmptyTodo", testEmptyTodo)
 	t.Run("testCreateSuccess", testCreateSuccess)
 	t.Run("testCreateInternalServerError", testCreateInternalServerError)
 	t.Run("testCreateInvalid", testCreateInvalid)
-	t.Run("testTodolistHandlerGetByID", testTodolistHandlerGetByID)
+	t.Run("testDeleteSuccess", testDeleteSuccess)
+	t.Run("testDeleteNotFound", testDeleteNotFound)
+	t.Run("testDeleteInternalServerError", testDeleteInternalServerError)
 }
 
 func testGetAllSuccess(t *testing.T) {
@@ -180,38 +187,6 @@ func testCreateSuccess(t *testing.T) {
 func testCreateInternalServerError(t *testing.T) {
 	todoRepo := repository.NewMockTodoRepository(t)
 
-	//newTodo := &entity.Todolist{
-	//	Title:  "Makan",
-	//	Status: false,
-	//}
-	//expectedErrors := errors.New("Internal Server Error")
-	//todoRepo.On("Create", "Makan").Return(newTodo, expectedErrors)
-	//
-	//// Initialize todo service with mock repository
-	//todoSvc := NewTodoService(todoRepo)
-	//
-	//// Call the create endpoint
-	//endpoint := "/manage-todo"
-	//r := gin.New()
-	//r.POST(endpoint, todoSvc.TodolistHandlerCreate)
-	//
-	//// Create an HTTP request to create a new Todo
-	//reqBody := bytes.NewBufferString(`{"title": "Makan"}`)
-	//req, err := http.NewRequest(http.MethodPost, endpoint, reqBody)
-	//require.NoError(t, err)
-	//
-	//w := httptest.NewRecorder()
-	//r.ServeHTTP(w, req)
-	//
-	//respBody, err := io.ReadAll(w.Body)
-	//require.NoError(t, err)
-	//
-	//var errResp respErr.ErrorResponse
-	//err = json.Unmarshal(respBody, &errResp)
-	//require.NoError(t, err)
-	//
-	//assert.Equal(t, http.StatusInternalServerError, w.Code)
-	//assert.Equal(t, expectedErrors.Error(), errResp.Message)
 	handler := NewTodoService(todoRepo)
 
 	expectedError := errors.New("Internal Server Error")
@@ -254,13 +229,6 @@ func testCreateInvalid(t *testing.T) {
 	handler := NewTodoService(todorepo)
 
 	expectedErrors := errors.New("Invalid input")
-
-	//newTodo := &entity.Todolist{
-	//	Title: "",
-	//}
-	//
-	//todorepo.On("Create", newTodo.Title).Return(newTodo, expectedErrors).Once()
-
 	endpoint := "/manage-todo"
 
 	// Create invalid input
@@ -355,7 +323,7 @@ func testTodolistHandlerGetByID(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, internal.Status)
 }
 
-func TestDeleteSuccess(t *testing.T) {
+func testDelete(t *testing.T) {
 	mockTodoRepo := repository.NewMockTodoRepository(t)
 	handler := NewTodoService(mockTodoRepo)
 
@@ -363,7 +331,7 @@ func TestDeleteSuccess(t *testing.T) {
 	mockTodoRepo.On("Delete", int64(1)).Return(int64(1), nil)
 
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("DELETE", "/manage-todo/todo/1", nil)
+	req, _ := http.NewRequest(http.MethodDelete, "/manage-todo/todo/1", nil)
 	router := gin.Default()
 	router.DELETE("/manage-todo/todo/:id", handler.TodolistHandlerDelete)
 	router.ServeHTTP(w, req)
@@ -376,7 +344,105 @@ func TestDeleteSuccess(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "Succes Delete", resp.Message)
 
-	// Testing Not Found
-	//mockTodoRepo.On("Delete", int64(2)).Return("/manage-todo/todo/2")
+	//Testing Not Found
+	mockTodoRepo.On("Delete", int64(2)).Return(int64(0), nil)
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest("DELETE", "/manage-todo/todo/2", nil)
+	router = gin.Default()
+	router.DELETE("/manage-todo/todo/:id", handler.TodolistHandlerDelete)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var res respErr.ErrorResponse
+	err = json.Unmarshal(w.Body.Bytes(), &res)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, res.Status)
+	assert.Equal(t, "Not Found", res.Message)
+
+	//
+	mockTodoRepo.On("Delete", int64(3)).Return(int64(0), errors.New("Internal Server Error"))
+	w = httptest.NewRecorder()
+
+	req, _ = http.NewRequest("DELETE", "/manage-todo/todo/3", nil)
+	router = gin.Default()
+	router.DELETE("/manage-todo/todo/:id", handler.TodolistHandlerDelete)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	var res1 respErr.ErrorResponse
+	err = json.Unmarshal(w.Body.Bytes(), &res1)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, res1.Status)
+	assert.Equal(t, "Internal Server Error", res1.Message)
+
+	mockTodoRepo.AssertExpectations(t)
+
+}
+
+func testDeleteSuccess(t *testing.T) {
+	mockTodoRepo := repository.NewMockTodoRepository(t)
+	handler := NewTodoService(mockTodoRepo)
+
+	// Testing Success
+	mockTodoRepo.On("Delete", int64(1)).Return(int64(1), nil)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodDelete, "/manage-todo/todo/1", nil)
+	router := gin.Default()
+	router.DELETE("/manage-todo/todo/:id", handler.TodolistHandlerDelete)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp request.TodoDeleteResponse
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "Succes Delete", resp.Message)
+
+}
+
+func testDeleteNotFound(t *testing.T) {
+	mockTodoRepo := repository.NewMockTodoRepository(t)
+	mockTodoRepo.On("Delete", int64(1)).Return(int64(0), nil)
+
+	handler := NewTodoService(mockTodoRepo)
+
+	router := gin.Default()
+	router.DELETE("/manage-todo/todo/:id", handler.TodolistHandlerDelete)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", "/manage-todo/todo/1", nil)
+	router.ServeHTTP(w, req)
+
+	var res respErr.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &res)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusNotFound, res.Status)
+	assert.Equal(t, "Not Found", res.Message)
+}
+
+func testDeleteInternalServerError(t *testing.T) {
+	mockTodoRepo := repository.NewMockTodoRepository(t)
+	mockTodoRepo.On("Delete", int64(1)).Return(int64(0), errors.New("Internal Server Error"))
+
+	handler := NewTodoService(mockTodoRepo)
+
+	router := gin.Default()
+	router.DELETE("/manage-todo/todo/:id", handler.TodolistHandlerDelete)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("DELETE", "/manage-todo/todo/1", nil)
+	router.ServeHTTP(w, req)
+
+	var res1 respErr.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &res1)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusInternalServerError, res1.Status)
+	assert.Equal(t, "Internal Server Error", res1.Message)
 
 }

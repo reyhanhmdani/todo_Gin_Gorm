@@ -187,9 +187,9 @@ func (h *Handler) TodolistHandlerDelete(ctx *gin.Context) {
 	}
 	//fmt.Println(isFound)
 	if isFound == 0 {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, request.TodoIDResponse{
+		ctx.AbortWithStatusJSON(http.StatusNotFound, respErr.ErrorResponse{
 			Message: "Not Found",
-			Data:    http.StatusInternalServerError,
+			Status:  http.StatusNotFound,
 		})
 		return
 	}
