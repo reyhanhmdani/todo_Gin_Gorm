@@ -1,9 +1,10 @@
 package database
 
 import (
-	"context"
+	//"context"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -16,7 +17,7 @@ import (
 
 func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 
-	fmt.Printf("%+v\n ", cfg)
+	fmt.Printf("%+v\n", cfg)
 	//
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
 		cfg.DBUsername,
@@ -43,6 +44,28 @@ func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 	err = db.AutoMigrate(&entity.Todolist{})
 	if err != nil {
 		logrus.Error(err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
+	sqlDB.SetMaxIdleConns(10)
+
+	// SetMaxOpenConns sets the maximum number of open connections to the database.
+	sqlDB.SetMaxOpenConns(100)
+
+	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	// ping database to make sure connection is established successfully
+	//ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	//defer cancel()
+
+	if err := sqlDB.PingContext(ctx); err != nil {
+		return nil, err
 	}
 
 	//logrus.Info("Database Migrated")

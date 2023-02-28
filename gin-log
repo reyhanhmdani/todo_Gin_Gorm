@@ -10,3 +10,15 @@
 [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
 Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
 [GIN-debug] Listening and serving HTTP on :8080
+::1 - [27 Feb 23 14:37 WIB] PUT /manage-todo/todo/3 401 47.103µs 
+::1 - [27 Feb 23 14:37 WIB] PUT /manage-todo/todo/311 401 26.056µs 
+::1 - [27 Feb 23 14:37 WIB] PUT /manage-todo/todo/311 401 26.728µs 
+::1 - [27 Feb 23 14:38 WIB] PUT /manage-todo/todo/4 401 27.179µs 
+::1 - [27 Feb 23 14:38 WIB] POST /manage-todo 400 237.313µs 
+::1 - [27 Feb 23 14:38 WIB] POST /manage-todo 200 25.549118ms 
+::1 - [27 Feb 23 14:38 WIB] GET /manage-todo/todo/1 401 25.117µs 
+::1 - [27 Feb 23 14:38 WIB] GET /manage-todo/todo/1 404 1.041397ms 
+::1 - [27 Feb 23 14:38 WIB] PUT /manage-todo/todo/4 200 23.890662ms 
+::1 - [27 Feb 23 14:38 WIB] PUT /manage-todo/todo/4 200 1.461199ms 
+::1 - [27 Feb 23 14:39 WIB] GET /manage-todos 200 757.458µs 
+::1 - [27 Feb 23 14:39 WIB] DELETE /manage-todo/todo/31111 404 2.388602ms 

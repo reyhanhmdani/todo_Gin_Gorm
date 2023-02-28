@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"todoGin/model/request"
+	"todoGin/model/respErr"
 	"todoGin/repository"
 )
 
@@ -22,16 +23,18 @@ func NewTodoService(todoRepo repository.TodoRepository) *Handler {
 func (h *Handler) TodolistHandlerGetAll(ctx *gin.Context) {
 	todos, err := h.TodoRepository.GetAll()
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Internal Server Error",
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, &respErr.ErrorResponse{
+			Message: err.Error(),
+			Status:  http.StatusInternalServerError,
 		})
+		return
 	}
-	logrus.Info(200, " Success Get All Data")
-	ctx.JSON(http.StatusOK, gin.H{
-		"status":  http.StatusOK,
-		"data":    len(todos),
-		"todos":   todos,
-		"message": "Success Get All",
+	logrus.Info(http.StatusOK, " Success Get All Data")
+	//ctx.AbortWithStatusJSON(http.StatusOK, todos)
+	ctx.AbortWithStatusJSON(http.StatusOK, request.TodoResponseToGetAll{
+		Status: "Success Get All",
+		Data:   len(todos),
+		Todos:  todos,
 	})
 	return
 }
@@ -40,26 +43,27 @@ func (h *Handler) TodolistHandlerCreate(ctx *gin.Context) {
 	err := ctx.ShouldBindJSON(todolist)
 	if err != nil {
 		logrus.Error(err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-			"status":  http.StatusBadRequest,
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, respErr.ErrorResponse{
+			Message: "Invalid input",
+			Status:  http.StatusBadRequest,
 		})
 		return
 	}
-	if _, errCreate := h.TodoRepository.Create(todolist.Title); errCreate != nil {
+	newTodo, errCreate := h.TodoRepository.Create(todolist.Title)
+	if errCreate != nil {
 		logrus.Error(errCreate)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Failed Create Data",
-			"status":  http.StatusInternalServerError,
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, respErr.ErrorResponse{
+			Message: "Internal Server Error",
+			Status:  http.StatusInternalServerError,
 		})
 		return
 	}
-	//if errCreate := db.Raw("INSERT INTO todolist(title) values (?)").Scan(&todolist)
+
 	logrus.Info(http.StatusOK, " Success Create Todo", todolist)
-	ctx.JSON(http.StatusOK, gin.H{
-		"status":  http.StatusOK,
-		"message": "Success",
-		"data":    todolist,
+	ctx.JSON(http.StatusOK, request.TodoResponse{
+		Status:  http.StatusOK,
+		Message: "New Todo Created",
+		Data:    *newTodo,
 	})
 	return
 }
@@ -68,32 +72,33 @@ func (h *Handler) TodolistHandlerGetByID(ctx *gin.Context) {
 	todoID, err := strconv.ParseInt(userId, 10, 64)
 	if err != nil {
 		logrus.Error(err)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, respErr.ErrorResponse{
+			Message: "Bad request",
+			Status:  http.StatusBadRequest,
 		})
 		return
 	}
 	todo, err := h.TodoRepository.GetByID(todoID)
 	if err != nil {
 		logrus.Errorf("failed when get todo by id: %v", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-			"status":  http.StatusInternalServerError,
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, respErr.ErrorResponse{
+			Message: "Internal Server Error",
+			Status:  http.StatusInternalServerError,
 		})
 		return
 	}
 	if todo == nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			"message": "USER NOT FOUND",
-			"status":  http.StatusNotFound,
+		ctx.AbortWithStatusJSON(http.StatusNotFound, respErr.ErrorResponse{
+			Message: "Not Found",
+			Status:  http.StatusNotFound,
 		})
 		return
 	}
-	logrus.Info(200, " Success Get By ID")
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "Success Get ID",
-		"data":    todo,
-		"Status":  http.StatusOK,
+	logrus.Info(http.StatusOK, " Success Get By ID")
+	ctx.JSON(http.StatusOK, request.TodoResponse{
+		Status:  http.StatusOK,
+		Message: "Success Get Id",
+		Data:    *todo,
 	})
 	return
 }
@@ -103,56 +108,59 @@ func (h *Handler) TodolistHandlerUpdate(ctx *gin.Context) {
 	todoID, err := strconv.ParseInt(userId, 10, 64)
 	if err != nil {
 		logrus.Error(err)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, respErr.ErrorResponse{
+			Message: "parse ID error",
+			Status:  http.StatusBadRequest,
 		})
 		return
 	}
 	reqBody := new(request.TodolistUpdateRequest)
 	if err := ctx.ShouldBindJSON(reqBody); err != nil {
 		logrus.Error(err)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-			"status":  http.StatusBadRequest,
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, respErr.ErrorResponse{
+			Message: "Bad request",
+			Status:  http.StatusBadRequest,
 		})
 		return
 	}
 	ErrId, err := h.TodoRepository.GetByID(todoID)
 	if err != nil {
 		logrus.Errorf("failed when get todo by id: %v", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-			"status":  http.StatusInternalServerError,
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, respErr.ErrorResponse{
+			Message: "Internal Server Error",
+			Status:  http.StatusInternalServerError,
 		})
 		return
 	}
 	if ErrId == nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			"message": "USER NOT FOUND",
-			"status":  http.StatusNotFound,
+		ctx.AbortWithStatusJSON(http.StatusNotFound, respErr.ErrorResponse{
+			Message: "ID not Found",
+			Status:  http.StatusNotFound,
 		})
 		return
 	}
 	rowsAffected, err := h.TodoRepository.Update(todoID, reqBody.ReqTodo())
 	if err != nil {
 		logrus.Errorf("failed when updating todo: %v", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, respErr.ErrorResponse{
+			Message: "Internal Server Error",
+			Status:  http.StatusInternalServerError,
 		})
 		return
 	}
 	if rowsAffected == nil {
-		ctx.AbortWithStatusJSON(http.StatusOK, gin.H{
-			"status": http.StatusOK,
+		ctx.AbortWithStatusJSON(http.StatusOK, request.TodoIDResponse{
+			Message: "Not Change",
+			Data:    reqBody,
 		})
 		return
 	}
 
-	logrus.Info(200, " Success Update Todo")
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "successfully update Data",
-		"status":  http.StatusOK,
-		"data":    reqBody,
+	logrus.Info(http.StatusOK, " Success Update Todo")
+	ctx.JSON(http.StatusOK, request.TodoUpdateResponse{
+		Status:  http.StatusOK,
+		Message: "Success Update Todo",
+		Todos:   reqBody,
 	})
 	return
 
@@ -162,32 +170,33 @@ func (h *Handler) TodolistHandlerDelete(ctx *gin.Context) {
 	todoID, err := strconv.ParseInt(userId, 10, 64)
 	if err != nil {
 		logrus.Error(err)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
-			"status":  400,
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, respErr.ErrorResponse{
+			Message: "Parse ID Error",
+			Status:  http.StatusBadRequest,
 		})
 		return
 	}
 	isFound, err := h.TodoRepository.Delete(todoID)
 	if err != nil {
 		logrus.Errorf("failed when deleting todo: %v", err)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": err,
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, respErr.ErrorResponse{
+			Message: "Internal Server Error",
+			Status:  http.StatusInternalServerError,
 		})
 		return
 	}
 	//fmt.Println(isFound)
 	if isFound == 0 {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			"message": "NOT FOUND ID",
-			"status":  404,
+		ctx.AbortWithStatusJSON(http.StatusNotFound, request.TodoIDResponse{
+			Message: "Not Found",
+			Data:    http.StatusInternalServerError,
 		})
 		return
 	}
-	logrus.Info(200, " Success DELETE")
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": "successfully Delete Data",
-		"status":  http.StatusOK,
+	logrus.Info(http.StatusOK, " Success DELETE")
+	ctx.JSON(http.StatusOK, request.TodoDeleteResponse{
+		Status:  http.StatusOK,
+		Message: "Succes Delete",
 	})
 
 	//fmt.Println()

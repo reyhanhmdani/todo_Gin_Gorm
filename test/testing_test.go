@@ -33,7 +33,7 @@ func setupTestDB() (*gorm.DB, error) {
 
 func setupRouter(db *gorm.DB) *gin.Engine {
 	todoRepo := database.NewTodoRepository(db)
-	todoService := service.NewHandler(todoRepo)
+	todoService := service.NewTodoService(todoRepo)
 	routeBuilder := router.NewRouteBuilder(todoService)
 	routeInit := routeBuilder.RouteInit()
 
@@ -50,7 +50,7 @@ func TestCreateSuccess(t *testing.T) {
 	truncateTodolist(db)
 	router := setupRouter(db)
 
-	requestBody := strings.NewReader(`{"title": "sholat isya","status": true}`)
+	requestBody := strings.NewReader(`{"title": "sholat isya"}`)
 	request := httptest.NewRequest(http.MethodPost, "http://localhost:3000/manage-todo", requestBody)
 	request.Header.Add("Authorization", "secret_Key")
 
