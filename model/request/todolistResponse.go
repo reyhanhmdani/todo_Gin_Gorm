@@ -25,7 +25,7 @@ type TodoDeleteResponse struct {
 }
 
 type TodoUpdateResponse struct {
-	Status  interface{} `json:"status"`
+	Status  int         `json:"status"`
 	Message interface{} `json:"data"`
 	Todos   interface{} `json:"todos"`
 }
