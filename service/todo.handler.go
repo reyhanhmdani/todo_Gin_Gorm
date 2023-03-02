@@ -198,7 +198,5 @@ func (h *Handler) TodolistHandlerDelete(ctx *gin.Context) {
 		Status:  http.StatusOK,
 		Message: "Succes Delete",
 	})
-
-	//fmt.Println()
 	return
 }

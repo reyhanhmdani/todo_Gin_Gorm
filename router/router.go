@@ -17,7 +17,6 @@ func NewRouteBuilder(todoService *todoservice.Handler) *RouteBuilder {
 func (rb *RouteBuilder) RouteInit() *gin.Engine {
 
 	r := gin.New()
-	//r.Use(gin.Logger())
 	r.Use(gin.Recovery(), middleware.Logger(), middleware.XAPIKEY())
 
 	r.GET("/manage-todos", rb.todoService.TodolistHandlerGetAll)
@@ -26,9 +25,5 @@ func (rb *RouteBuilder) RouteInit() *gin.Engine {
 	r.PUT("/manage-todo/todo/:id", rb.todoService.TodolistHandlerUpdate)
 	r.DELETE("/manage-todo/todo/:id", rb.todoService.TodolistHandlerDelete)
 
-	//err := r.Run()
-	//if err != nil {
-	//	return nil
-	//}
 	return r
 }
