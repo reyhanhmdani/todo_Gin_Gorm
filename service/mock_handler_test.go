@@ -22,9 +22,9 @@ import (
 func TestTodolist(t *testing.T) {
 	t.Run("TestGetAll", TestGetAll)
 	t.Run("TestCreate", TestCreate)
+	t.Run("TestUpdate", TestUpdate)
 	t.Run("TestGetByID", TestGetByID)
 	t.Run("TestDelete", TestDelete)
-	t.Run("TestUpdate", TestUpdate)
 }
 
 // one for All
@@ -181,6 +181,9 @@ func TestCreate(t *testing.T) {
 		handler := NewTodoService(todorepo)
 
 		expectedErrors := errors.New("Invalid input")
+
+		//todorepo.On("Create", "").Return(nil, expectedErrors)
+
 		endpoint := "/manage-todo"
 
 		// Create invalid input
@@ -191,7 +194,9 @@ func TestCreate(t *testing.T) {
 		// Set up Gin context
 		w := httptest.NewRecorder()
 		c, r := gin.CreateTestContext(w)
-		r.POST(endpoint, handler.TodolistHandlerCreate)
+		r.POST(endpoint, func(context *gin.Context) {
+			handler.TodolistHandlerCreate(context)
+		})
 
 		// Perform request
 		c.Request = req
@@ -252,6 +257,128 @@ func TestCreate(t *testing.T) {
 
 		// Check mock call
 		todoRepo.AssertCalled(t, "Create", "Test Todo")
+	})
+
+}
+
+// Update
+func TestUpdate(t *testing.T) {
+
+	t.Run("Success", func(t *testing.T) {
+		// membuat object mock
+		mockRepo := repository.NewMockTodoRepository(t)
+
+		// membuat object handler dan menambahkan dependensi mock
+		handler := NewTodoService(mockRepo)
+
+		// create request body
+		reqBody := request.TodolistUpdateRequest{
+			Title: "New Title",
+		}
+		requestBodyBytes, _ := json.Marshal(reqBody)
+
+		// create expected response
+		expectedTodo := entity.Todolist{
+			ID:     1,
+			Title:  "New Title",
+			Status: false,
+		}
+		mockRepo.On("GetByID", int64(1)).Return(&entity.Todolist{}, nil)
+		mockRepo.On("Update", int64(1), mock.Anything).Return(&expectedTodo, nil)
+
+		// create test request
+		req, _ := http.NewRequest(http.MethodPut, "/manage-todo/todo/1", bytes.NewBuffer(requestBodyBytes))
+		rr := httptest.NewRecorder()
+
+		// perform test request
+		r := gin.Default()
+		r.PUT("/manage-todo/todo/:id", handler.TodolistHandlerUpdate)
+		r.ServeHTTP(rr, req)
+
+		// check response
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var resp request.TodoUpdateResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &resp)
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.Status)
+		assert.Equal(t, "Success Update Todo", resp.Message)
+
+	})
+
+	t.Run("Not Found", func(t *testing.T) {
+		mockRepo := repository.NewMockTodoRepository(t)
+
+		// membuat object handler dan menambahkan dependensi mock
+		handler := NewTodoService(mockRepo)
+
+		reqBody1 := request.TodolistUpdateRequest{
+			Title: "New Title",
+		}
+		requestBodyBytes, _ := json.Marshal(reqBody1)
+
+		// create mock behavior
+		mockRepo.On("GetByID", int64(2)).Return(nil, nil)
+
+		// create test request
+		req, _ := http.NewRequest(http.MethodPut, "/manage-todo/todo/2", bytes.NewBuffer(requestBodyBytes))
+		rr := httptest.NewRecorder()
+
+		// perform test request
+		r := gin.Default()
+		r.PUT("/manage-todo/todo/:id", handler.TodolistHandlerUpdate)
+		r.ServeHTTP(rr, req)
+
+		// check response
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+		var resp1 respErr.ErrorResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &resp1)
+		require.NoError(t, err)
+		assert.Equal(t, "ID not Found", resp1.Message)
+		assert.Equal(t, http.StatusNotFound, resp1.Status)
+
+		// assert mock behavior
+		mockRepo.AssertExpectations(t)
+	})
+	// internal Server Error
+
+	t.Run("Internal Server Error", func(t *testing.T) {
+		mockRepo := repository.NewMockTodoRepository(t)
+
+		// membuat object handler dan menambahkan dependensi mock
+		handler := NewTodoService(mockRepo)
+
+		mockRepo.On("GetByID", int64(3)).Return(&entity.Todolist{}, nil)
+		mockRepo.On("Update", int64(3), mock.Anything).Return(nil, errors.New("Internal Server Error"))
+
+		// membuat handler dengan mock object
+
+		// membuat request payload
+		payload := request.TodolistUpdateRequest{
+			Title:  "New Title",
+			Status: false,
+		}
+		requestBody, _ := json.Marshal(payload)
+
+		// membuat request http
+		req, _ := http.NewRequest("PUT", "/manage-todo/todo/3", bytes.NewBuffer(requestBody))
+		rr := httptest.NewRecorder()
+
+		// perform test request
+		r := gin.Default()
+		r.PUT("/manage-todo/todo/:id", handler.TodolistHandlerUpdate)
+		r.ServeHTTP(rr, req)
+
+		// melakukan pengecekan status code dan response
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+
+		var resp2 respErr.ErrorResponse
+		err := json.Unmarshal(rr.Body.Bytes(), &resp2)
+		require.NoError(t, err)
+		assert.Equal(t, "Internal Server Error", resp2.Message)
+		assert.Equal(t, http.StatusInternalServerError, resp2.Status)
+
+		// melakukan pengecekan apakah ekspektasi sudah terpanggil
+		mockRepo.AssertExpectations(t)
 	})
 
 }
@@ -406,128 +533,6 @@ func TestDelete(t *testing.T) {
 		assert.Equal(t, "Internal Server Error", res1.Message)
 
 		mockTodoRepo.AssertExpectations(t)
-	})
-
-}
-
-// Update
-func TestUpdate(t *testing.T) {
-
-	t.Run("Success", func(t *testing.T) {
-		// membuat object mock
-		mockRepo := repository.NewMockTodoRepository(t)
-
-		// membuat object handler dan menambahkan dependensi mock
-		handler := NewTodoService(mockRepo)
-
-		// create request body
-		reqBody := request.TodolistUpdateRequest{
-			Title: "New Title",
-		}
-		requestBodyBytes, _ := json.Marshal(reqBody)
-
-		// create expected response
-		expectedTodo := entity.Todolist{
-			ID:     1,
-			Title:  "New Title",
-			Status: false,
-		}
-		mockRepo.On("GetByID", int64(1)).Return(&entity.Todolist{}, nil)
-		mockRepo.On("Update", int64(1), mock.Anything).Return(&expectedTodo, nil)
-
-		// create test request
-		req, _ := http.NewRequest(http.MethodPut, "/manage-todo/todo/1", bytes.NewBuffer(requestBodyBytes))
-		rr := httptest.NewRecorder()
-
-		// perform test request
-		r := gin.Default()
-		r.PUT("/manage-todo/todo/:id", handler.TodolistHandlerUpdate)
-		r.ServeHTTP(rr, req)
-
-		// check response
-		assert.Equal(t, http.StatusOK, rr.Code)
-		var resp request.TodoUpdateResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &resp)
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, resp.Status)
-		assert.Equal(t, "Success Update Todo", resp.Message)
-
-	})
-
-	t.Run("Not Found", func(t *testing.T) {
-		mockRepo := repository.NewMockTodoRepository(t)
-
-		// membuat object handler dan menambahkan dependensi mock
-		handler := NewTodoService(mockRepo)
-
-		reqBody1 := request.TodolistUpdateRequest{
-			Title: "New Title",
-		}
-		requestBodyBytes, _ := json.Marshal(reqBody1)
-
-		// create mock behavior
-		mockRepo.On("GetByID", int64(2)).Return(nil, nil)
-
-		// create test request
-		req, _ := http.NewRequest(http.MethodPut, "/manage-todo/todo/2", bytes.NewBuffer(requestBodyBytes))
-		rr := httptest.NewRecorder()
-
-		// perform test request
-		r := gin.Default()
-		r.PUT("/manage-todo/todo/:id", handler.TodolistHandlerUpdate)
-		r.ServeHTTP(rr, req)
-
-		// check response
-		assert.Equal(t, http.StatusNotFound, rr.Code)
-		var resp1 respErr.ErrorResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &resp1)
-		require.NoError(t, err)
-		assert.Equal(t, "ID not Found", resp1.Message)
-		assert.Equal(t, http.StatusNotFound, resp1.Status)
-
-		// assert mock behavior
-		mockRepo.AssertExpectations(t)
-	})
-	// internal Server Error
-
-	t.Run("Internal Server Error", func(t *testing.T) {
-		mockRepo := repository.NewMockTodoRepository(t)
-
-		// membuat object handler dan menambahkan dependensi mock
-		handler := NewTodoService(mockRepo)
-
-		mockRepo.On("GetByID", int64(3)).Return(&entity.Todolist{}, nil)
-		mockRepo.On("Update", int64(3), mock.Anything).Return(nil, errors.New("Internal Server Error"))
-
-		// membuat handler dengan mock object
-
-		// membuat request payload
-		payload := request.TodolistUpdateRequest{
-			Title:  "New Title",
-			Status: false,
-		}
-		requestBody, _ := json.Marshal(payload)
-
-		// membuat request http
-		req, _ := http.NewRequest("PUT", "/manage-todo/todo/3", bytes.NewBuffer(requestBody))
-		rr := httptest.NewRecorder()
-
-		// perform test request
-		r := gin.Default()
-		r.PUT("/manage-todo/todo/:id", handler.TodolistHandlerUpdate)
-		r.ServeHTTP(rr, req)
-
-		// melakukan pengecekan status code dan response
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-
-		var resp2 respErr.ErrorResponse
-		err := json.Unmarshal(rr.Body.Bytes(), &resp2)
-		require.NoError(t, err)
-		assert.Equal(t, "Internal Server Error", resp2.Message)
-		assert.Equal(t, http.StatusInternalServerError, resp2.Status)
-
-		// melakukan pengecekan apakah ekspektasi sudah terpanggil
-		mockRepo.AssertExpectations(t)
 	})
 
 }

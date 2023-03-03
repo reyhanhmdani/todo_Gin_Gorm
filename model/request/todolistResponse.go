@@ -9,7 +9,7 @@ type TodoResponse struct {
 }
 
 type TodoResponseToGetAll struct {
-	Status string            `json:"status"`
+	Status interface{}       `json:"status"`
 	Data   int               `json:"data"`
 	Todos  []entity.Todolist `json:"todos"`
 }

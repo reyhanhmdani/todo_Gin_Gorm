@@ -1,73 +1,192 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/assert/v2"
 	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strconv"
-	"strings"
 	"testing"
+	"todoGin/model/entity"
 	"todoGin/model/request"
 	"todoGin/model/respErr"
 	"todoGin/repository"
 )
 
-func toJSON(t interface{}) string {
-	bytes, err := json.Marshal(t)
-	if err != nil {
-		return ""
-	}
-	return string(bytes)
-}
+func TestGetAll1(t *testing.T) {
 
-func TestBuat(t *testing.T) {
-	mockRepo := repository.NewMockTodoRepository(t)
-	handler := NewTodoService(mockRepo)
-	gin.SetMode(gin.TestMode)
-
-	type args struct {
-		request request.TodolistCreateRequest
-	}
-
-	tests := []struct {
-		name    string
-		handler *Handler
-		args    args
-		wantErr bool
-		want    int
+	testCases := []struct {
+		name               string
+		expectedStatusCode int
+		mockTodo           []entity.Todolist
+		mockErr            error
+		expectedResponse   request.TodoResponseToGetAll
 	}{
 		{
-			name:    "Success",
-			handler: handler,
-			args: args{
-				request: request.TodolistCreateRequest{
-					Title: "Todo1",
+			name:               "Success",
+			expectedStatusCode: http.StatusOK,
+			mockTodo: []entity.Todolist{
+				{ID: 1, Title: "Task 1", Status: false},
+				{ID: 2, Title: "Task 2", Status: false},
+			},
+			mockErr: nil,
+			expectedResponse: request.TodoResponseToGetAll{
+				Status: "Success Get All",
+				Data:   2,
+				Todos: []entity.Todolist{
+					{ID: 1, Title: "Task 1", Status: false},
+					{ID: 2, Title: "Task 2", Status: false},
 				},
 			},
-			wantErr: false,
-			want:    http.StatusOK,
+		},
+		{
+			name:               "Internal Server Error",
+			expectedStatusCode: http.StatusInternalServerError,
+			mockTodo:           []entity.Todolist{},
+			mockErr:            errors.New("Internal Server Error"),
+			expectedResponse: request.TodoResponseToGetAll{
+				Status: "Internal Server Error",
+				Data:   0,
+				Todos:  []entity.Todolist{},
+			},
+		},
+		{
+			name:               "Empty",
+			expectedStatusCode: http.StatusOK,
+			mockTodo:           []entity.Todolist{},
+			mockErr:            nil,
+			expectedResponse: request.TodoResponseToGetAll{
+				Status: "Success Get All",
+				Data:   0,
+				Todos:  []entity.Todolist{},
+			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockRepo.On("Create", tt.args.request.Title).Return(tt.wantErr, nil)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := repository.NewMockTodoRepository(t)
+			repo.On("GetAll").Return(tc.mockTodo, tc.mockErr)
+
+			handler := NewTodoService(repo)
+
+			r, err := http.NewRequest("GET", "/manage-todos", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPost, "/manage-todo", strings.NewReader(toJSON(tt.args.request)))
 			router := gin.Default()
-			router.POST("/manage-todo", handler.TodolistHandlerCreate)
-			router.ServeHTTP(w, req)
+			router.GET("/manage-todos", handler.TodolistHandlerGetAll)
+			router.ServeHTTP(w, r)
 
-			assert.Equal(t, tt.want, w.Code)
+			assert.Equal(t, tc.expectedStatusCode, w.Code)
 
+			var resp request.TodoResponseToGetAll
+			err = json.Unmarshal(w.Body.Bytes(), &resp)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, tc.expectedResponse.Status, resp.Status)
+			assert.Equal(t, tc.expectedResponse.Data, resp.Data)
+			assert.Equal(t, tc.expectedResponse.Todos, resp.Todos)
 		})
+	}
+}
 
+func TestCreate1(t *testing.T) {
+	tests := []struct {
+		name          string
+		body          string
+		mock          func(*repository.MockTodoRepository)
+		expectedCode  int
+		expectedData  *entity.Todolist
+		expectedError string
+	}{
+		{
+			name: "Success",
+			body: `{"title": "Makan"}`,
+			mock: func(mock *repository.MockTodoRepository) {
+				newTodo := &entity.Todolist{
+					Title:  "Makan",
+					Status: false,
+				}
+				mock.On("Create", "Makan").Return(newTodo, nil)
+			},
+			expectedCode: http.StatusOK,
+			expectedData: &entity.Todolist{
+				Title:  "Makan",
+				Status: false,
+			},
+			expectedError: "",
+		},
+		{
+			name:          "Invalid input",
+			body:          `{"title": ""}`,
+			mock:          func(mock *repository.MockTodoRepository) {},
+			expectedCode:  http.StatusBadRequest,
+			expectedData:  nil,
+			expectedError: "Invalid input",
+		},
+		{
+			name: "Internal Server Error",
+			body: `{"title": "Test Todo"}`,
+			mock: func(mock *repository.MockTodoRepository) {
+				expectedError := errors.New("Internal Server Error")
+				mock.On("Create", "Test Todo").Return(nil, expectedError)
+			},
+			expectedCode:  http.StatusInternalServerError,
+			expectedData:  nil,
+			expectedError: "Internal Server Error",
+		},
+	}
+
+	for _, s := range tests {
+		t.Run(s.name, func(t *testing.T) {
+			todoRepo := repository.NewMockTodoRepository(t)
+			s.mock(todoRepo)
+			handler := NewTodoService(todoRepo)
+
+			endpoint := "/manage-todo"
+
+			body := bytes.NewBufferString(s.body)
+			req, err := http.NewRequest(http.MethodPost, endpoint, body)
+			require.NoError(t, err)
+
+			w := httptest.NewRecorder()
+			c, r := gin.CreateTestContext(w)
+			r.POST(endpoint, handler.TodolistHandlerCreate)
+
+			c.Request = req
+			r.ServeHTTP(w, req)
+
+			respBody, err := io.ReadAll(w.Body)
+			require.NoError(t, err)
+
+			if s.expectedError != "" {
+				var errResp respErr.ErrorResponse
+				err = json.Unmarshal(respBody, &errResp)
+				require.NoError(t, err)
+				assert.Equal(t, s.expectedError, errResp.Message)
+			} else {
+				var result request.TodoResponse
+				err = json.Unmarshal(respBody, &result)
+				require.NoError(t, err)
+				assert.Equal(t, s.expectedData, result.Data)
+			}
+
+			assert.Equal(t, s.expectedCode, w.Code)
+		})
 	}
 }
 
@@ -139,6 +258,174 @@ func TestTodolistHandlerDelete(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.IsEqual(t, reflect.DeepEqual(tc.expResp, &respBody))
+
+			mockRepo.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetByID1(t *testing.T) {
+	testCases := []struct {
+		name            string
+		inputID         int64
+		expectedStatus  int
+		expectedMessage string
+		expectedData    entity.Todolist
+		mockError       error
+		mockResult      *entity.Todolist
+	}{
+		{
+			name:            "Success",
+			inputID:         1,
+			expectedStatus:  http.StatusOK,
+			expectedMessage: "Success Get Id",
+			expectedData:    entity.Todolist{ID: 1, Title: "Test Todo"},
+			mockError:       nil,
+			mockResult:      &entity.Todolist{ID: 1, Title: "Test Todo"},
+		},
+		{
+			name:            "Not Found",
+			inputID:         2,
+			expectedStatus:  http.StatusNotFound,
+			expectedMessage: "Not Found",
+			expectedData:    entity.Todolist{},
+			mockError:       nil,
+			mockResult:      nil,
+		},
+		{
+			name:            "Internal Server Error",
+			inputID:         3,
+			expectedStatus:  http.StatusInternalServerError,
+			expectedMessage: "Internal Server Error",
+			expectedData:    entity.Todolist{},
+			mockError:       errors.New("Internal Server Error"),
+			mockResult:      nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockTodoRepo := repository.NewMockTodoRepository(t)
+			handler := NewTodoService(mockTodoRepo)
+
+			mockTodoRepo.On("GetByID", tc.inputID).Return(tc.mockResult, tc.mockError)
+
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", fmt.Sprintf("/manage-todo/todo/%d", tc.inputID), nil)
+			router := gin.Default()
+			router.GET("/manage-todo/todo/:id", handler.TodolistHandlerGetByID)
+			router.ServeHTTP(w, req)
+
+			respBody, err := io.ReadAll(w.Body)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+
+			var response request.TodoResponse
+			err = json.Unmarshal(respBody, &response)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+			assert.Equal(t, tc.expectedMessage, response.Message)
+			assert.Equal(t, tc.expectedData, response.Data)
+		})
+	}
+}
+
+func TestUpdate1(t *testing.T) {
+
+	mockRepo := repository.NewMockTodoRepository(t)
+
+	// membuat object handler dan menambahkan dependensi mock
+	handler := NewTodoService(mockRepo)
+
+	testCases := []struct {
+		name           string
+		id             int64
+		requestPayload request.TodolistUpdateRequest
+		mockBehavior   func()
+		expectedStatus int
+		expectedResp   interface{}
+	}{
+		{
+			name: "Success",
+			id:   1,
+			requestPayload: request.TodolistUpdateRequest{
+				Title: "New Title",
+			},
+			mockBehavior: func() {
+				expectedTodo := entity.Todolist{
+					ID:     1,
+					Title:  "New Title",
+					Status: false,
+				}
+				mockRepo.On("GetByID", int64(1)).Return(&entity.Todolist{}, nil)
+				mockRepo.On("Update", int64(1), mock.Anything).Return(&expectedTodo, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectedResp: map[string]interface{}{
+				"data":   "Success Update Todo",
+				"status": 200,
+			},
+		},
+		{
+			name: "Not Found",
+			id:   2,
+			requestPayload: request.TodolistUpdateRequest{
+				Title: "New Title",
+			},
+			mockBehavior: func() {
+				mockRepo.On("GetByID", int64(2)).Return(nil, nil)
+			},
+			expectedStatus: http.StatusNotFound,
+			expectedResp: respErr.ErrorResponse{
+				Status:  http.StatusNotFound,
+				Message: "ID not Found",
+			},
+		},
+		{
+			name: "Internal Server Error",
+			id:   3,
+			requestPayload: request.TodolistUpdateRequest{
+				Title:  "New Title",
+				Status: false,
+			},
+			mockBehavior: func() {
+				mockRepo.On("GetByID", int64(3)).Return(&entity.Todolist{}, nil)
+				mockRepo.On("Update", int64(3), mock.Anything).Return(nil, errors.New("Internal Server Error"))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedResp: respErr.ErrorResponse{
+				Status:  http.StatusInternalServerError,
+				Message: "Internal Server Error",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockBehavior()
+
+			requestBodyBytes, _ := json.Marshal(tc.requestPayload)
+
+			req, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/manage-todo/todo/%d", tc.id), bytes.NewBuffer(requestBodyBytes))
+			rr := httptest.NewRecorder()
+
+			r := gin.Default()
+			r.PUT("/manage-todo/todo/:id", handler.TodolistHandlerUpdate)
+			r.ServeHTTP(rr, req)
+
+			assert.Equal(t, tc.expectedStatus, rr.Code)
+
+			var resp interface{}
+			if tc.expectedStatus == http.StatusOK {
+				resp = request.TodoUpdateResponse{}
+			} else {
+				resp = respErr.ErrorResponse{}
+			}
+			err := json.Unmarshal(rr.Body.Bytes(), &resp)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedResp, resp)
 
 			mockRepo.AssertExpectations(t)
 		})
