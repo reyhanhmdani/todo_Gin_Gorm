@@ -358,7 +358,7 @@ func TestDelete(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &resp)
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Equal(t, "Succes Delete", resp.Message)
+		assert.Equal(t, "Success Delete", resp.Message)
 
 	})
 	//Testing Not Found

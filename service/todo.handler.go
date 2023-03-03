@@ -196,7 +196,7 @@ func (h *Handler) TodolistHandlerDelete(ctx *gin.Context) {
 	logrus.Info(http.StatusOK, " Success DELETE")
 	ctx.JSON(http.StatusOK, request.TodoDeleteResponse{
 		Status:  http.StatusOK,
-		Message: "Succes Delete",
+		Message: "Success Delete",
 	})
 	return
 }
