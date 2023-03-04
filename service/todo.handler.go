@@ -32,9 +32,9 @@ func (h *Handler) TodolistHandlerGetAll(ctx *gin.Context) {
 	logrus.Info(http.StatusOK, " Success Get All Data")
 	//ctx.AbortWithStatusJSON(http.StatusOK, todos)
 	ctx.AbortWithStatusJSON(http.StatusOK, request.TodoResponseToGetAll{
-		Status: "Success Get All",
-		Data:   len(todos),
-		Todos:  todos,
+		Message: "Success Get All",
+		Data:    len(todos),
+		Todos:   todos,
 	})
 	return
 }

@@ -19,6 +19,9 @@ import (
 	"todoGin/repository"
 )
 
+//
+// golangci-lint run --timeout=5m --fix ./...
+
 func TestTodolist(t *testing.T) {
 	t.Run("TestGetAll", TestGetAll)
 	t.Run("TestCreate", TestCreate)
@@ -60,7 +63,7 @@ func TestGetAll(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		assert.Equal(t, "Success Get All", resp.Status)
+		assert.Equal(t, "Success Get All", resp.Message)
 		assert.Equal(t, len(mockTodo), resp.Data)
 		assert.Equal(t, mockTodo, resp.Todos)
 
@@ -119,7 +122,7 @@ func TestGetAll(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		assert.Equal(t, "Success Get All", resp.Status)
+		assert.Equal(t, "Success Get All", resp.Message)
 		assert.Equal(t, 0, resp.Data)
 		assert.IsEqual(t, resp.Todos)
 	})

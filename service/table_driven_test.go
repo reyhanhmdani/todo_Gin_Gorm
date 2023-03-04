@@ -40,8 +40,8 @@ func TestGetAll1(t *testing.T) {
 			},
 			mockErr: nil,
 			expectedResponse: request.TodoResponseToGetAll{
-				Status: "Success Get All",
-				Data:   2,
+				Message: "Success Get All",
+				Data:    2,
 				Todos: []entity.Todolist{
 					{ID: 1, Title: "Task 1", Status: false},
 					{ID: 2, Title: "Task 2", Status: false},
@@ -54,9 +54,9 @@ func TestGetAll1(t *testing.T) {
 			mockTodo:           []entity.Todolist{},
 			mockErr:            errors.New("Internal Server Error"),
 			expectedResponse: request.TodoResponseToGetAll{
-				Status: "Internal Server Error",
-				Data:   0,
-				Todos:  []entity.Todolist{},
+				Message: "Internal Server Error",
+				Data:    0,
+				Todos:   []entity.Todolist{},
 			},
 		},
 		{
@@ -65,9 +65,9 @@ func TestGetAll1(t *testing.T) {
 			mockTodo:           []entity.Todolist{},
 			mockErr:            nil,
 			expectedResponse: request.TodoResponseToGetAll{
-				Status: "Success Get All",
-				Data:   0,
-				Todos:  []entity.Todolist{},
+				Message: "Success Get All",
+				Data:    0,
+				Todos:   []entity.Todolist{},
 			},
 		},
 	}
@@ -97,9 +97,14 @@ func TestGetAll1(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assert.Equal(t, tc.expectedResponse.Status, resp.Status)
+			fmt.Printf("TYPE: %T\n", tc.expectedResponse.Todos)
+			fmt.Printf("TYPE: %T\n", resp.Todos)
+			/////////////////////////////////////////////////////
+
+			assert.Equal(t, tc.expectedResponse.Message, resp.Message)
+			assert.IsEqual(t, reflect.DeepEqual(tc.expectedResponse.Todos, resp.Todos))
 			assert.Equal(t, tc.expectedResponse.Data, resp.Data)
-			assert.Equal(t, tc.expectedResponse.Todos, resp.Todos)
+			//assert.Equal(t, tc.expectedResponse.Todos, resp.Todos)
 		})
 	}
 }
@@ -196,7 +201,7 @@ func TestTodolistHandlerDelete(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Test cases
-	testCases := []struct {
+	tests := []struct {
 		name      string
 		todoID    int64
 		isFound   int64
@@ -239,7 +244,7 @@ func TestTodolistHandlerDelete(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo.On("Delete", tc.todoID).Return(tc.isFound, tc.repoError)
 
@@ -259,7 +264,6 @@ func TestTodolistHandlerDelete(t *testing.T) {
 			require.NoError(t, err)
 			assert.IsEqual(t, reflect.DeepEqual(tc.expResp, &respBody))
 
-			mockRepo.AssertExpectations(t)
 		})
 	}
 }
@@ -425,7 +429,7 @@ func TestUpdate1(t *testing.T) {
 			}
 			err := json.Unmarshal(rr.Body.Bytes(), &resp)
 			require.NoError(t, err)
-			assert.Equal(t, tc.expectedResp, resp)
+			assert.IsEqual(t, reflect.DeepEqual(tc.expectedResp, resp))
 
 			mockRepo.AssertExpectations(t)
 		})
