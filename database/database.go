@@ -3,6 +3,7 @@ package database
 import (
 	//"context"
 	"fmt"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"gorm.io/driver/mysql"
@@ -12,7 +13,6 @@ import (
 	"os"
 	"time"
 	"todoGin/config"
-	"todoGin/model/entity"
 )
 
 func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
@@ -41,11 +41,11 @@ func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 		panic("Cannot Connect to database")
 		//return nil, err
 	}
-	err = db.AutoMigrate(&entity.Todolist{})
-	if err != nil {
-		logrus.Error(err)
-	}
-
+	//err = db.AutoMigrate(&entity.Todolist{})
+	//if err != nil {
+	//	logrus.Error(err)
+	//}
+	//
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, err
@@ -60,9 +60,9 @@ func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	// ping database to make sure connection is established successfully
-	//ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	//defer cancel()
+	//ping database to make sure connection is established successfully
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 
 	if err := sqlDB.PingContext(ctx); err != nil {
 		return nil, err
@@ -73,3 +73,34 @@ func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 	logrus.Info("Connect to Database")
 	return db, err
 }
+
+// migrate -database "mysql://Raihan:Pastibisa@tcp(localhost:3306)/Gin_todo" -path db/migrations up
+
+//func Migrate(db *gorm.DB) error {
+//	logrus.Info("running database migration")
+//
+//	sqlDB, err := db.DB()
+//	if err != nil {
+//		return err
+//	}
+//
+//	driver, err := mysqlMigration.WithInstance(sqlDB, &mysqlMigration.Config{})
+//	if err != nil {
+//		return err
+//	}
+//
+//	m, err := migrate.NewWithDatabaseInstance(
+//		"file://database/migrations",
+//		"mysql", driver)
+//	if err != nil {
+//		return err
+//	}
+//
+//	err = m.Up()
+//	if err != nil && err == migrate.ErrNoChange {
+//		logrus.Info("No schema changes to apply")
+//		return nil
+//	}
+//
+//	return err
+//}

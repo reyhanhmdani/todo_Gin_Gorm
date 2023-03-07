@@ -10,7 +10,7 @@ type TodolistUpdateRequest struct {
 }
 
 func (r *TodolistUpdateRequest) ReqTodo() map[string]interface{} {
-	updates := make(map[string]interface{}, 0)
+	updates := make(map[string]interface{})
 	if r.Title != "" {
 		updates["title"] = r.Title
 	}

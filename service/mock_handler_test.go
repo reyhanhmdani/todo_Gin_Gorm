@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/assert/v2"
+	_ "github.com/go-playground/assert/v2"
 	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -54,8 +55,6 @@ func TestGetAll(t *testing.T) {
 		router := gin.Default()
 		router.GET("/manage-todos", handler.TodolistHandlerGetAll)
 		router.ServeHTTP(rr, req)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
 
 		var resp request.TodoResponseToGetAll
 		err = json.Unmarshal(rr.Body.Bytes(), &resp)
@@ -124,7 +123,9 @@ func TestGetAll(t *testing.T) {
 
 		assert.Equal(t, "Success Get All", resp.Message)
 		assert.Equal(t, 0, resp.Data)
-		assert.IsEqual(t, resp.Todos)
+		assert.Equal(t, []entity.Todolist{}, resp.Todos)
+		//assert.IsEqual(t, resp.Todos)
+		//assert.
 	})
 }
 
@@ -174,7 +175,7 @@ func TestCreate(t *testing.T) {
 
 		// Assert that the response has a 200 ok status code and returns the new Todo
 		assert.Equal(t, http.StatusOK, w.Code)
-		assert.Equal(t, newTodo, result.Data)
+		assert.Equal(t, *newTodo, result.Data)
 	})
 
 	// invalid

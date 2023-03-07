@@ -20,7 +20,7 @@ func setupLogOutput() {
 
 func main() {
 
-	setupLogOutput()
+	//setupLogOutput()
 
 	ctx := context.Background()
 
@@ -39,6 +39,12 @@ func main() {
 	if err != nil {
 		return
 	}
+
+	//err = database.Migrate(db)
+	//if err != nil {
+	//	log.Fatalf("Error running schema migration %v", err)
+	//}
+
 	// initial repo
 	todoRepo := database.NewTodoRepository(db)
 	todoService := service.NewTodoService(todoRepo)

@@ -6,14 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/assert/v2"
 	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strconv"
 	"testing"
 	"todoGin/model/entity"
@@ -56,7 +55,7 @@ func TestGetAll1(t *testing.T) {
 			expectedResponse: request.TodoResponseToGetAll{
 				Message: "Internal Server Error",
 				Data:    0,
-				Todos:   []entity.Todolist{},
+				Todos:   []entity.Todolist(nil),
 			},
 		},
 		{
@@ -102,7 +101,8 @@ func TestGetAll1(t *testing.T) {
 			/////////////////////////////////////////////////////
 
 			assert.Equal(t, tc.expectedResponse.Message, resp.Message)
-			assert.IsEqual(t, reflect.DeepEqual(tc.expectedResponse.Todos, resp.Todos))
+			//assert.IsEqual(t, reflect.DeepEqual(tc.expectedResponse.Todos, resp.Todos))
+			assert.Equal(t, tc.expectedResponse.Todos, resp.Todos)
 			assert.Equal(t, tc.expectedResponse.Data, resp.Data)
 			//assert.Equal(t, tc.expectedResponse.Todos, resp.Todos)
 		})
@@ -111,12 +111,12 @@ func TestGetAll1(t *testing.T) {
 
 func TestCreate1(t *testing.T) {
 	tests := []struct {
-		name          string
-		body          string
-		mock          func(*repository.MockTodoRepository)
-		expectedCode  int
-		expectedData  *entity.Todolist
-		expectedError string
+		name           string
+		body           string
+		mock           func(*repository.MockTodoRepository)
+		expectedStatus int
+		expectedData   entity.Todolist
+		expectedError  string
 	}{
 		{
 			name: "Success",
@@ -128,20 +128,20 @@ func TestCreate1(t *testing.T) {
 				}
 				mock.On("Create", "Makan").Return(newTodo, nil)
 			},
-			expectedCode: http.StatusOK,
-			expectedData: &entity.Todolist{
+			expectedStatus: http.StatusOK,
+			expectedData: entity.Todolist{
 				Title:  "Makan",
 				Status: false,
 			},
 			expectedError: "",
 		},
 		{
-			name:          "Invalid input",
-			body:          `{"title": ""}`,
-			mock:          func(mock *repository.MockTodoRepository) {},
-			expectedCode:  http.StatusBadRequest,
-			expectedData:  nil,
-			expectedError: "Invalid input",
+			name:           "Invalid input",
+			body:           `{"title": ""}`,
+			mock:           func(mock *repository.MockTodoRepository) {},
+			expectedStatus: http.StatusBadRequest,
+			expectedData:   entity.Todolist{},
+			expectedError:  "Invalid input",
 		},
 		{
 			name: "Internal Server Error",
@@ -150,21 +150,21 @@ func TestCreate1(t *testing.T) {
 				expectedError := errors.New("Internal Server Error")
 				mock.On("Create", "Test Todo").Return(nil, expectedError)
 			},
-			expectedCode:  http.StatusInternalServerError,
-			expectedData:  nil,
-			expectedError: "Internal Server Error",
+			expectedStatus: http.StatusInternalServerError,
+			expectedData:   entity.Todolist{},
+			expectedError:  "Internal Server Error",
 		},
 	}
 
-	for _, s := range tests {
-		t.Run(s.name, func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
 			todoRepo := repository.NewMockTodoRepository(t)
-			s.mock(todoRepo)
+			tc.mock(todoRepo)
 			handler := NewTodoService(todoRepo)
 
 			endpoint := "/manage-todo"
 
-			body := bytes.NewBufferString(s.body)
+			body := bytes.NewBufferString(tc.body)
 			req, err := http.NewRequest(http.MethodPost, endpoint, body)
 			require.NoError(t, err)
 
@@ -178,19 +178,19 @@ func TestCreate1(t *testing.T) {
 			respBody, err := io.ReadAll(w.Body)
 			require.NoError(t, err)
 
-			if s.expectedError != "" {
+			if tc.expectedError != "" {
 				var errResp respErr.ErrorResponse
 				err = json.Unmarshal(respBody, &errResp)
 				require.NoError(t, err)
-				assert.Equal(t, s.expectedError, errResp.Message)
+				assert.Equal(t, tc.expectedError, errResp.Message)
 			} else {
 				var result request.TodoResponse
 				err = json.Unmarshal(respBody, &result)
 				require.NoError(t, err)
-				assert.Equal(t, s.expectedData, result.Data)
+				assert.Equal(t, tc.expectedData, result.Data)
 			}
 
-			assert.Equal(t, s.expectedCode, w.Code)
+			assert.Equal(t, tc.expectedStatus, w.Code)
 		})
 	}
 }
@@ -226,7 +226,7 @@ func TestTodolistHandlerDelete(t *testing.T) {
 			isFound:   0,
 			repoError: nil,
 			expStatus: http.StatusNotFound,
-			expResp: respErr.ErrorResponse{
+			expResp: request.TodoDeleteResponse{
 				Message: "Not Found",
 				Status:  http.StatusNotFound,
 			},
@@ -237,7 +237,7 @@ func TestTodolistHandlerDelete(t *testing.T) {
 			isFound:   0,
 			repoError: errors.New("Internal Server Error"),
 			expStatus: http.StatusInternalServerError,
-			expResp: respErr.ErrorResponse{
+			expResp: request.TodoDeleteResponse{
 				Message: "Internal Server Error",
 				Status:  http.StatusInternalServerError,
 			},
@@ -256,13 +256,14 @@ func TestTodolistHandlerDelete(t *testing.T) {
 
 			assert.Equal(t, tc.expStatus, w.Code)
 
-			var respBody map[string]interface{}
+			var respBody request.TodoDeleteResponse
 			err := json.Unmarshal(w.Body.Bytes(), &respBody)
 			if err != nil {
 				log.Print(err)
 			}
 			require.NoError(t, err)
-			assert.IsEqual(t, reflect.DeepEqual(tc.expResp, &respBody))
+			//assert.IsEqual(t, reflect.DeepEqual(tc.expResp, &respBody))
+			assert.Equal(t, tc.expResp, respBody)
 
 		})
 	}
@@ -350,6 +351,7 @@ func TestUpdate1(t *testing.T) {
 		mockBehavior   func()
 		expectedStatus int
 		expectedResp   interface{}
+		expectedError  string
 	}{
 		{
 			name: "Success",
@@ -370,7 +372,9 @@ func TestUpdate1(t *testing.T) {
 			expectedResp: map[string]interface{}{
 				"data":   "Success Update Todo",
 				"status": 200,
+				"todos":  entity.Todolist{},
 			},
+			expectedError: "",
 		},
 		{
 			name: "Not Found",
@@ -386,6 +390,7 @@ func TestUpdate1(t *testing.T) {
 				Status:  http.StatusNotFound,
 				Message: "ID not Found",
 			},
+			expectedError: "ID not Found",
 		},
 		{
 			name: "Internal Server Error",
@@ -403,6 +408,7 @@ func TestUpdate1(t *testing.T) {
 				Status:  http.StatusInternalServerError,
 				Message: "Internal Server Error",
 			},
+			expectedError: "Internal Server Error",
 		},
 	}
 
@@ -412,24 +418,34 @@ func TestUpdate1(t *testing.T) {
 
 			requestBodyBytes, _ := json.Marshal(tc.requestPayload)
 
-			req, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/manage-todo/todo/%d", tc.id), bytes.NewBuffer(requestBodyBytes))
-			rr := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/manage-todo/todo/%d", tc.id), bytes.NewBuffer(requestBodyBytes))
+			w := httptest.NewRecorder()
 
 			r := gin.Default()
 			r.PUT("/manage-todo/todo/:id", handler.TodolistHandlerUpdate)
-			r.ServeHTTP(rr, req)
+			r.ServeHTTP(w, req)
 
-			assert.Equal(t, tc.expectedStatus, rr.Code)
-
-			var resp interface{}
-			if tc.expectedStatus == http.StatusOK {
-				resp = request.TodoUpdateResponse{}
-			} else {
-				resp = respErr.ErrorResponse{}
-			}
-			err := json.Unmarshal(rr.Body.Bytes(), &resp)
+			respBody, err := io.ReadAll(w.Body)
 			require.NoError(t, err)
-			assert.IsEqual(t, reflect.DeepEqual(tc.expectedResp, resp))
+
+			assert.Equal(t, tc.expectedStatus, w.Code)
+
+			//var resp interface{}
+			//if tc.expectedStatus == http.StatusOK {
+			//	resp = request.TodoUpdateResponse{}
+			//} else {
+			//	resp = respErr.ErrorResponse{}
+			//}
+
+			if tc.expectedError != "" {
+				var errResp respErr.ErrorResponse
+				err = json.Unmarshal(respBody, &errResp)
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedError, errResp.Message)
+			}
+
+			//assert.IsEqual(t, reflect.DeepEqual(tc.expectedResp, resp))
+			assert.Equal(t, tc.expectedStatus, w.Code)
 
 			mockRepo.AssertExpectations(t)
 		})
