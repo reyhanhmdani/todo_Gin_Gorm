@@ -3,6 +3,9 @@ package database
 import (
 	//"context"
 	"fmt"
+	mysqlMigration "github.com/golang-migrate/migrate/v4/database/mysql"
+
+	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -76,31 +79,31 @@ func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 
 // migrate -database "mysql://Raihan:Pastibisa@tcp(localhost:3306)/Gin_todo" -path db/migrations up
 
-//func Migrate(db *gorm.DB) error {
-//	logrus.Info("running database migration")
-//
-//	sqlDB, err := db.DB()
-//	if err != nil {
-//		return err
-//	}
-//
-//	driver, err := mysqlMigration.WithInstance(sqlDB, &mysqlMigration.Config{})
-//	if err != nil {
-//		return err
-//	}
-//
-//	m, err := migrate.NewWithDatabaseInstance(
-//		"file://database/migrations",
-//		"mysql", driver)
-//	if err != nil {
-//		return err
-//	}
-//
-//	err = m.Up()
-//	if err != nil && err == migrate.ErrNoChange {
-//		logrus.Info("No schema changes to apply")
-//		return nil
-//	}
-//
-//	return err
-//}
+func Migrate(db *gorm.DB) error {
+	logrus.Info("running database migration")
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+
+	driver, err := mysqlMigration.WithInstance(sqlDB, &mysqlMigration.Config{})
+	if err != nil {
+		return err
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://database/migrations",
+		"mysql", driver)
+	if err != nil {
+		return err
+	}
+
+	err = m.Up()
+	if err != nil && err == migrate.ErrNoChange {
+		logrus.Info("No schema changes to apply")
+		return nil
+	}
+
+	return err
+}
