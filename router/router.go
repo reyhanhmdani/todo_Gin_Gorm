@@ -17,7 +17,7 @@ func NewRouteBuilder(todoService *todoservice.Handler) *RouteBuilder {
 func (rb *RouteBuilder) RouteInit() *gin.Engine {
 
 	r := gin.New()
-	r.Use(gin.Recovery(), middleware.Logger(), middleware.XAPIKEY())
+	r.Use(gin.Recovery(), middleware.Logger(), middleware.BasicAuth())
 
 	r.GET("/manage-todos", rb.todoService.TodolistHandlerGetAll)
 	r.POST("/manage-todo", rb.todoService.TodolistHandlerCreate)

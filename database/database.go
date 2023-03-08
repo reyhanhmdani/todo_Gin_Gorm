@@ -1,14 +1,12 @@
 package database
 
 import (
-	//"context"
+	"context"
 	"fmt"
-	mysqlMigration "github.com/golang-migrate/migrate/v4/database/mysql"
-
 	"github.com/golang-migrate/migrate/v4"
+	mysqlMigration "github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -71,13 +69,12 @@ func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	//logrus.Info("Database Migrated")
-
 	logrus.Info("Connect to Database")
 	return db, err
 }
 
 // migrate -database "mysql://Raihan:Pastibisa@tcp(localhost:3306)/Gin_todo" -path db/migrations up
+// migrate -database "mysql://Raihan:Pastibisa@tcp(localhost:3306)/Gin_todo" -path database/migrations up
 
 func Migrate(db *gorm.DB) error {
 	logrus.Info("running database migration")

@@ -20,7 +20,7 @@ func setupLogOutput() {
 
 func main() {
 
-	//setupLogOutput()
+	setupLogOutput()
 
 	ctx := context.Background()
 
