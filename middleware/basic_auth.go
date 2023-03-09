@@ -12,16 +12,16 @@ import (
 //}
 
 func BasicAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		user, password, hasAuth := c.Request.BasicAuth()
+	return func(ctx *gin.Context) {
+		user, password, hasAuth := ctx.Request.BasicAuth()
 		if !hasAuth || user != "key" || password != "value" {
-			c.Writer.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			//c.Writer.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"status":  http.StatusUnauthorized,
 				"message": "UNAUTHORIZED",
 			})
 			return
 		}
-		c.Next()
+		ctx.Next()
 	}
 }
