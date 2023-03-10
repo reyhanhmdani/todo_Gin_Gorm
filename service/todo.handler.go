@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -21,6 +23,26 @@ func NewTodoService(todoRepo repository.TodoRepository) *Handler {
 }
 
 func (h *Handler) TodolistHandlerGetAll(ctx *gin.Context) {
+	authHeader := ctx.GetHeader("Authorization")
+	if authHeader == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.Abort()
+		return
+	}
+
+	tokenString := authHeader[7:]
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte("secret"), nil
+	})
+	if err != nil || !token.Valid {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		ctx.Abort()
+		return
+	}
+
 	todos, err := h.TodoRepository.GetAll()
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, &respErr.ErrorResponse{

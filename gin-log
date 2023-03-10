@@ -10,7 +10,5 @@
 [GIN-debug] [WARNING] You trusted all proxies, this is NOT safe. We recommend you to set a value.
 Please check https://pkg.go.dev/github.com/gin-gonic/gin#readme-don-t-trust-all-proxies for details.
 [GIN-debug] Listening and serving HTTP on :8080
-::1 - [09 Mar 23 14:23 WIB] GET /manage-todos 200 1.985024ms 
-::1 - [09 Mar 23 14:23 WIB] GET /manage-todo/todo/11 404 712.161µs 
-::1 - [09 Mar 23 14:23 WIB] GET /manage-todo/todo/1 200 955.679µs 
-::1 - [09 Mar 23 14:23 WIB] POST /manage-todo 200 20.45458ms 
+::1 - [10 Mar 23 21:38 WIB] GET /manage-todos 401 48.051µs 
+::1 - [10 Mar 23 21:38 WIB] GET /favicon.ico 401 29.816µs 
