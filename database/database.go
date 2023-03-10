@@ -42,11 +42,7 @@ func DatabaseInit(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
 		panic("Cannot Connect to database")
 		//return nil, err
 	}
-	//err = db.AutoMigrate(&entity.Todolist{})
-	//if err != nil {
-	//	logrus.Error(err)
-	//}
-	//
+
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, err

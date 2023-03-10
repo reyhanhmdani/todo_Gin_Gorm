@@ -15,10 +15,10 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"todoGin/mocks"
 	"todoGin/model/entity"
 	"todoGin/model/request"
 	"todoGin/model/respErr"
-	"todoGin/repository"
 )
 
 func TestGetAll1(t *testing.T) {
@@ -73,7 +73,7 @@ func TestGetAll1(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			repo := repository.NewMockTodoRepository(t)
+			repo := mocks.NewTodoRepository(t)
 			repo.On("GetAll").Return(tc.mockTodo, tc.mockErr)
 
 			handler := NewTodoService(repo)
@@ -113,7 +113,7 @@ func TestCreate1(t *testing.T) {
 	tests := []struct {
 		name           string
 		body           string
-		mock           func(*repository.MockTodoRepository)
+		mock           func(todoRepository *mocks.TodoRepository)
 		expectedStatus int
 		expectedData   entity.Todolist
 		expectedError  string
@@ -121,7 +121,7 @@ func TestCreate1(t *testing.T) {
 		{
 			name: "Success",
 			body: `{"title": "Makan"}`,
-			mock: func(mock *repository.MockTodoRepository) {
+			mock: func(mock *mocks.TodoRepository) {
 				newTodo := &entity.Todolist{
 					Title:  "Makan",
 					Status: false,
@@ -138,7 +138,7 @@ func TestCreate1(t *testing.T) {
 		{
 			name:           "Invalid input",
 			body:           `{"title": ""}`,
-			mock:           func(mock *repository.MockTodoRepository) {},
+			mock:           func(mock *mocks.TodoRepository) {},
 			expectedStatus: http.StatusBadRequest,
 			expectedData:   entity.Todolist{},
 			expectedError:  "Invalid input",
@@ -146,7 +146,7 @@ func TestCreate1(t *testing.T) {
 		{
 			name: "Internal Server Error",
 			body: `{"title": "Test Todo"}`,
-			mock: func(mock *repository.MockTodoRepository) {
+			mock: func(mock *mocks.TodoRepository) {
 				expectedError := errors.New("Internal Server Error")
 				mock.On("Create", "Test Todo").Return(nil, expectedError)
 			},
@@ -158,7 +158,7 @@ func TestCreate1(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			todoRepo := repository.NewMockTodoRepository(t)
+			todoRepo := mocks.NewTodoRepository(t)
 			tc.mock(todoRepo)
 			handler := NewTodoService(todoRepo)
 
@@ -196,7 +196,7 @@ func TestCreate1(t *testing.T) {
 }
 
 func TestTodolistHandlerDelete(t *testing.T) {
-	mockRepo := repository.NewMockTodoRepository(t)
+	mockRepo := mocks.NewTodoRepository(t)
 	handler := NewTodoService(mockRepo)
 	gin.SetMode(gin.TestMode)
 
@@ -310,7 +310,7 @@ func TestGetByID1(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockTodoRepo := repository.NewMockTodoRepository(t)
+			mockTodoRepo := mocks.NewTodoRepository(t)
 			handler := NewTodoService(mockTodoRepo)
 
 			mockTodoRepo.On("GetByID", tc.inputID).Return(tc.mockResult, tc.mockError)
@@ -339,7 +339,7 @@ func TestGetByID1(t *testing.T) {
 
 func TestUpdate1(t *testing.T) {
 
-	mockRepo := repository.NewMockTodoRepository(t)
+	mockRepo := mocks.NewTodoRepository(t)
 
 	// membuat object handler dan menambahkan dependensi mock
 	handler := NewTodoService(mockRepo)

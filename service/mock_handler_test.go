@@ -14,10 +14,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"todoGin/mocks"
 	"todoGin/model/entity"
 	"todoGin/model/request"
 	"todoGin/model/respErr"
-	"todoGin/repository"
 )
 
 //
@@ -41,7 +41,7 @@ func TestGetAll(t *testing.T) {
 		}
 
 		// success
-		repo := repository.NewMockTodoRepository(t)
+		repo := mocks.NewTodoRepository(t)
 		repo.On("GetAll").Return(mockTodo, nil)
 
 		handler := NewTodoService(repo)
@@ -70,7 +70,7 @@ func TestGetAll(t *testing.T) {
 
 	// Internal Server Error
 	t.Run("Internal Server Error", func(t *testing.T) {
-		repo := repository.NewMockTodoRepository(t)
+		repo := mocks.NewTodoRepository(t)
 		repo.On("GetAll").Return(nil, errors.New("some error"))
 
 		handler := NewTodoService(repo)
@@ -98,7 +98,7 @@ func TestGetAll(t *testing.T) {
 	})
 
 	t.Run("Empty", func(t *testing.T) {
-		repo := repository.NewMockTodoRepository(t)
+		repo := mocks.NewTodoRepository(t)
 		repo.On("GetAll").Return([]entity.Todolist{}, nil)
 
 		handler := NewTodoService(repo)
@@ -132,7 +132,7 @@ func TestGetAll(t *testing.T) {
 // Create
 func TestCreate(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		todoRepo := repository.NewMockTodoRepository(t)
+		todoRepo := mocks.NewTodoRepository(t)
 
 		// Set up mock behavior
 		newTodo := &entity.Todolist{
@@ -181,7 +181,7 @@ func TestCreate(t *testing.T) {
 	// invalid
 	t.Run("Invalid", func(t *testing.T) {
 
-		todorepo := repository.NewMockTodoRepository(t)
+		todorepo := mocks.NewTodoRepository(t)
 		handler := NewTodoService(todorepo)
 
 		expectedErrors := errors.New("Invalid input")
@@ -225,7 +225,7 @@ func TestCreate(t *testing.T) {
 	// internal Server Error
 	t.Run("Internal Server Error", func(t *testing.T) {
 
-		todoRepo := repository.NewMockTodoRepository(t)
+		todoRepo := mocks.NewTodoRepository(t)
 
 		handler := NewTodoService(todoRepo)
 
@@ -270,7 +270,7 @@ func TestUpdate(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		// membuat object mock
-		mockRepo := repository.NewMockTodoRepository(t)
+		mockRepo := mocks.NewTodoRepository(t)
 
 		// membuat object handler dan menambahkan dependensi mock
 		handler := NewTodoService(mockRepo)
@@ -310,7 +310,7 @@ func TestUpdate(t *testing.T) {
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
-		mockRepo := repository.NewMockTodoRepository(t)
+		mockRepo := mocks.NewTodoRepository(t)
 
 		// membuat object handler dan menambahkan dependensi mock
 		handler := NewTodoService(mockRepo)
@@ -346,7 +346,7 @@ func TestUpdate(t *testing.T) {
 	// internal Server Error
 
 	t.Run("Internal Server Error", func(t *testing.T) {
-		mockRepo := repository.NewMockTodoRepository(t)
+		mockRepo := mocks.NewTodoRepository(t)
 
 		// membuat object handler dan menambahkan dependensi mock
 		handler := NewTodoService(mockRepo)
@@ -391,7 +391,7 @@ func TestUpdate(t *testing.T) {
 func TestGetByID(t *testing.T) {
 	// inisiasi mocking
 	t.Run("Success", func(t *testing.T) {
-		mockTodoRepo := repository.NewMockTodoRepository(t)
+		mockTodoRepo := mocks.NewTodoRepository(t)
 
 		// inisiasi handler
 		handler := NewTodoService(mockTodoRepo)
@@ -420,7 +420,7 @@ func TestGetByID(t *testing.T) {
 
 	// testing not found
 	t.Run("Not Found", func(t *testing.T) {
-		mockTodoRepo := repository.NewMockTodoRepository(t)
+		mockTodoRepo := mocks.NewTodoRepository(t)
 
 		// inisiasi handler
 		handler := NewTodoService(mockTodoRepo)
@@ -444,7 +444,7 @@ func TestGetByID(t *testing.T) {
 
 	// testing internal server error
 	t.Run("Internal Server Error", func(t *testing.T) {
-		mockTodoRepo := repository.NewMockTodoRepository(t)
+		mockTodoRepo := mocks.NewTodoRepository(t)
 
 		// inisiasi handler
 		handler := NewTodoService(mockTodoRepo)
@@ -471,7 +471,7 @@ func TestGetByID(t *testing.T) {
 // Delete
 func TestDelete(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		mockTodoRepo := repository.NewMockTodoRepository(t)
+		mockTodoRepo := mocks.NewTodoRepository(t)
 		handler := NewTodoService(mockTodoRepo)
 
 		// Testing Success
@@ -495,7 +495,7 @@ func TestDelete(t *testing.T) {
 	//Testing Not Found
 
 	t.Run("Not Found", func(t *testing.T) {
-		mockTodoRepo := repository.NewMockTodoRepository(t)
+		mockTodoRepo := mocks.NewTodoRepository(t)
 		handler := NewTodoService(mockTodoRepo)
 
 		mockTodoRepo.On("Delete", int64(2)).Return(int64(0), nil)
@@ -516,7 +516,7 @@ func TestDelete(t *testing.T) {
 	})
 	// internal Server ERror
 	t.Run("Internal Server Error", func(t *testing.T) {
-		mockTodoRepo := repository.NewMockTodoRepository(t)
+		mockTodoRepo := mocks.NewTodoRepository(t)
 		handler := NewTodoService(mockTodoRepo)
 
 		mockTodoRepo.On("Delete", int64(3)).Return(int64(0), errors.New("Internal Server Error"))
