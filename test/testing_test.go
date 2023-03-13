@@ -45,7 +45,7 @@ func truncateTodolist(DB *gorm.DB) {
 }
 
 func TestCreateSuccess(t *testing.T) {
-	db, err := setupTestDB()
+	db, _ := setupTestDB()
 
 	truncateTodolist(db)
 	router := setupRouter(db)
@@ -62,7 +62,7 @@ func TestCreateSuccess(t *testing.T) {
 	assert.Equal(t, 200, response.StatusCode)
 	body, _ := io.ReadAll(response.Body)
 	var responseBody map[string]interface{}
-	err = json.Unmarshal(body, &responseBody)
+	err := json.Unmarshal(body, &responseBody)
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -73,7 +73,7 @@ func TestCreateSuccess(t *testing.T) {
 	assert.Equal(t, "sholat isya", responseBody["data"].(map[string]interface{})["title"])
 }
 func TestCreateFailedValidation(t *testing.T) {
-	db, err := setupTestDB()
+	db, _ := setupTestDB()
 	truncateTodolist(db)
 	router := setupRouter(db)
 
@@ -89,7 +89,7 @@ func TestCreateFailedValidation(t *testing.T) {
 	assert.Equal(t, 400, response.StatusCode)
 	body, _ := io.ReadAll(response.Body)
 	var responseBody map[string]interface{}
-	err = json.Unmarshal(body, &responseBody)
+	err := json.Unmarshal(body, &responseBody)
 	if err != nil {
 		logrus.Error(err)
 	}

@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -23,25 +21,25 @@ func NewTodoService(todoRepo repository.TodoRepository) *Handler {
 }
 
 func (h *Handler) TodolistHandlerGetAll(ctx *gin.Context) {
-	authHeader := ctx.GetHeader("Authorization")
-	if authHeader == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		ctx.Abort()
-		return
-	}
-
-	tokenString := authHeader[7:]
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte("secret"), nil
-	})
-	if err != nil || !token.Valid {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		ctx.Abort()
-		return
-	}
+	//authHeader := ctx.GetHeader("Authorization")
+	//if authHeader == "" {
+	//	ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	//	ctx.Abort()
+	//	return
+	//}
+	//
+	//tokenString := authHeader[7:]
+	//token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	//	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+	//		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+	//	}
+	//	return []byte("secret"), nil
+	//})
+	//if err != nil || !token.Valid {
+	//	ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	//	ctx.Abort()
+	//	return
+	//}
 
 	todos, err := h.TodoRepository.GetAll()
 	if err != nil {
@@ -58,7 +56,6 @@ func (h *Handler) TodolistHandlerGetAll(ctx *gin.Context) {
 		Data:    len(todos),
 		Todos:   todos,
 	})
-	return
 }
 func (h *Handler) TodolistHandlerCreate(ctx *gin.Context) {
 	todolist := new(request.TodolistCreateRequest)
@@ -87,7 +84,6 @@ func (h *Handler) TodolistHandlerCreate(ctx *gin.Context) {
 		Message: "New Todo Created",
 		Data:    *newTodo,
 	})
-	return
 }
 func (h *Handler) TodolistHandlerGetByID(ctx *gin.Context) {
 	userId := ctx.Param("id")
@@ -122,7 +118,6 @@ func (h *Handler) TodolistHandlerGetByID(ctx *gin.Context) {
 		Message: "Success Get Id",
 		Data:    *todo,
 	})
-	return
 }
 
 func (h *Handler) TodolistHandlerUpdate(ctx *gin.Context) {
@@ -184,7 +179,6 @@ func (h *Handler) TodolistHandlerUpdate(ctx *gin.Context) {
 		Message: "Success Update Todo",
 		Todos:   reqBody,
 	})
-	return
 
 }
 func (h *Handler) TodolistHandlerDelete(ctx *gin.Context) {
@@ -220,5 +214,4 @@ func (h *Handler) TodolistHandlerDelete(ctx *gin.Context) {
 		Status:  http.StatusOK,
 		Message: "Success Delete",
 	})
-	return
 }

@@ -418,7 +418,7 @@ func TestUpdate1(t *testing.T) {
 
 			requestBodyBytes, _ := json.Marshal(tc.requestPayload)
 
-			req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/manage-todo/todo/%d", tc.id), bytes.NewBuffer(requestBodyBytes))
+			req, _ := http.NewRequest(http.MethodPut, fmt.Sprintf("/manage-todo/todo/%d", tc.id), bytes.NewBuffer(requestBodyBytes))
 			w := httptest.NewRecorder()
 
 			r := gin.Default()
